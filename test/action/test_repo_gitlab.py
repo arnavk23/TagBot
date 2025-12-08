@@ -14,7 +14,7 @@ def _repo(
     github_api="",
     token="x",
     changelog="",
-    ignore=[],
+    ignore=None,
     ssh=False,
     gpg=False,
     draft=False,
@@ -33,7 +33,7 @@ def _repo(
         github_api=github_api,
         token=token,
         changelog=changelog,
-        changelog_ignore=ignore,
+        changelog_ignore=ignore if ignore is not None else [],
         ssh=ssh,
         gpg=gpg,
         draft=draft,
@@ -68,7 +68,9 @@ def test_constructor_gitlab_detection_by_api_host(mock_gitlab_client):
     mock_gitlab_client.return_value = mock_gl_instance
     mock_gl_instance.get_repo.return_value = Mock()
 
-    r = _repo(github="example.com", github_api="https://gitlab.example.com", registry="reg")
+    r = _repo(
+        github="example.com", github_api="https://gitlab.example.com", registry="reg"
+    )
 
     mock_gitlab_client.assert_called_once()
     assert r._gh is mock_gl_instance

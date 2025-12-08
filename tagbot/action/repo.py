@@ -16,7 +16,17 @@ from datetime import datetime, timedelta, timezone
 from stat import S_IREAD, S_IWRITE, S_IEXEC
 from subprocess import DEVNULL
 from tempfile import mkdtemp, mkstemp
-from typing import Any, Dict, List, Mapping, MutableMapping, Optional, TypeVar, Union, cast
+from typing import (
+    Any,
+    Dict,
+    List,
+    Mapping,
+    MutableMapping,
+    Optional,
+    TypeVar,
+    Union,
+    cast,
+)
 
 from urllib.parse import urlparse
 
@@ -47,7 +57,7 @@ except Exception:
 # Build a tuple of UnknownObjectException classes for both GitHub and GitLab
 # so exception handlers can catch the appropriate type depending on what's
 # available at runtime.
-UnknownObjectExceptions = (UnknownObjectException,)
+UnknownObjectExceptions: tuple[type[Exception], ...] = (UnknownObjectException,)
 if GitlabUnknown is not None:
     UnknownObjectExceptions = (UnknownObjectException, GitlabUnknown)
 
@@ -155,7 +165,7 @@ class Repo:
                 contents = self._only(self._repo.get_contents(filepath))
                 break
             except UnknownObjectExceptions:
-                pass
+                pass  # Try the next filename
         else:
             raise InvalidProject("Project file was not found")
         self.__project = toml.loads(contents.decoded_content.decode())
@@ -304,14 +314,14 @@ class Repo:
             arg = f"{commit.sha}:{self.__subdir}"
             subdir_tree_hash = self._git.command("rev-parse", arg)
             if subdir_tree_hash == tree:
-                return cast(Optional[str], commit.sha)
+                return cast(str, commit.sha)
             else:
                 msg = "Subdir tree SHA of commit from registry PR does not match"
                 logger.warning(msg)
                 return None
         # Handle regular case (subdir is not set)
         if commit.commit.tree.sha == tree:
-            return cast(Optional[str], commit.sha)
+            return cast(str, commit.sha)
         else:
             logger.warning("Tree SHA of commit from registry PR does not match")
             return None
@@ -322,7 +332,7 @@ class Repo:
         """Look up the commit SHA of a tree with the given SHA on one branch."""
         for commit in self._repo.get_commits(sha=branch, since=since):
             if commit.commit.tree.sha == tree:
-                return cast(Optional[str], commit.sha)
+                return cast(str, commit.sha)
         return None
 
     def _commit_sha_of_tree(self, tree: str) -> Optional[str]:
@@ -350,10 +360,10 @@ class Repo:
             return None
         ref_type = getattr(ref.object, "type", None)
         if ref_type == "commit":
-            return cast(Optional[str], ref.object.sha)
+            return cast(str, ref.object.sha)
         elif ref_type == "tag":
             tag = self._repo.get_git_tag(ref.object.sha)
-            return cast(Optional[str], tag.object.sha)
+            return cast(str, tag.object.sha)
         else:
             return None
 
