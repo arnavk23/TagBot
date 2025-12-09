@@ -97,6 +97,17 @@ def test_project():
         r._project("name")
 
 
+def test_project_malformed_toml():
+    """Test that malformed Project.toml raises InvalidProject."""
+    r = _repo()
+    r._repo.get_contents = Mock(
+        return_value=Mock(decoded_content=b"""name = "FooBar"\nuuid""")
+    )
+    r._Repo__project = None
+    with pytest.raises(InvalidProject, match="Failed to parse Project.toml"):
+        r._project("name")
+
+
 def test_project_subdir():
     r = _repo(subdir="path/to/FooBar.jl")
     r._repo.get_contents = Mock(
@@ -145,6 +156,22 @@ def test_registry_path_with_uppercase_uuid():
     assert r._registry_path == "B/Bar"
 
 
+@patch("tagbot.action.repo.logger")
+def test_registry_path_malformed_toml(logger):
+    """Test that malformed Registry.toml returns None and logs warning."""
+    r = _repo()
+    logger.reset_mock()  # Clear any warnings from _repo() initialization
+    r._registry = Mock()
+    r._registry.get_contents.return_value.sha = "123"
+    # Malformed TOML content
+    r._registry.get_git_blob.return_value.content = b64encode(b"[packages\nkey")
+    r._project = lambda _k: "abc-def"
+    result = r._registry_path
+    assert result is None
+    logger.warning.assert_called_once()
+    assert "Failed to parse Registry.toml" in logger.warning.call_args[0][0]
+
+
 def test_registry_url():
     r = _repo()
     r._Repo__registry_path = "E/Example"
@@ -157,6 +184,17 @@ def test_registry_url():
     assert r._registry_url == "https://github.com/JuliaLang/Example.jl.git"
     assert r._registry_url == "https://github.com/JuliaLang/Example.jl.git"
     assert r._registry.get_contents.call_count == 1
+
+
+def test_registry_url_malformed_toml():
+    """Test that malformed Package.toml raises InvalidProject."""
+    r = _repo()
+    r._Repo__registry_path = "E/Example"
+    r._registry = Mock()
+    # Malformed TOML content
+    r._registry.get_contents.return_value.decoded_content = b"name = "
+    with pytest.raises(InvalidProject, match="Failed to parse Package.toml"):
+        _ = r._registry_url
 
 
 def test_release_branch():
