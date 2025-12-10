@@ -211,7 +211,7 @@ class Repo:
                 registry = toml.loads(string_contents)
         except Exception as e:
             logger.warning(
-                f"Failed to parse Registry.toml: {type(e).__name__}: {e}. "
+                f"Failed to load Registry.toml: {type(e).__name__}: {e}. "
                 "This may indicate a temporary issue with the registry file."
             )
             return None
